@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, {
+      const response = await axios.post(`https://the-project-club-backend.onrender.com/api/auth/login`, {
         email,
         password
       });
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (userData) => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/signup`, userData);
+      const response = await axios.post(`https://the-project-club-backend.onrender.com/api/auth/signup`, userData);
       
       const { token, user } = response.data;
       localStorage.setItem('token', token);
