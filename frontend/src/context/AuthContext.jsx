@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyToken = async (token) => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/verify`, {
+      const response = await axios.get(`https://the-project-club-backend.onrender.com/api/auth/verify`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUser(response.data.user);
