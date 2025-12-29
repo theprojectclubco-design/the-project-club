@@ -15,7 +15,7 @@ function Home() {
   const fetchBatches = async () => {
     try {
       // ✅ Use /batches and support different response shapes
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/batches`);
+      const response = await axios.get(`https://the-project-club-backend.onrender.com/api/batches`);
       console.log('Home - Batches response:', response.data);
 
       if (response.data?.success && response.data.batches) {
