@@ -26,7 +26,7 @@ function CourseDetail() {
 
       // Fetch batch details
       const batchResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/batches/${batchId}`
+        `https://the-project-club-backend.onrender.com/api/batches/${batchId}`
       );
       console.log('Batch response:', batchResponse.data);
 
@@ -37,7 +37,7 @@ function CourseDetail() {
         if (token && user) {
           try {
             const profileResponse = await axios.get(
-              `${import.meta.env.VITE_API_URL}/auth/profile`,
+              `https://the-project-club-backend.onrender.com/api/auth/profile`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
 
