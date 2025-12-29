@@ -16,7 +16,7 @@ function Courses() {
 
   const fetchBatches = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/batches`);
+      const response = await axios.get(`https://the-project-club-backend.onrender.com/api/batches`);
       console.log('✅ Batches response:', response.data);
       
       // Handle correct backend response format

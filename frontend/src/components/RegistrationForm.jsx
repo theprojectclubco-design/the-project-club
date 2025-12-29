@@ -37,7 +37,7 @@ function RegistrationForm() {
           const token = localStorage.getItem('token');
           if (token) {
             const response = await axios.get(
-              `${import.meta.env.VITE_API_URL}/auth/profile`,
+              `https://the-project-club-backend.onrender.com/api/auth/profile`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -96,7 +96,7 @@ function RegistrationForm() {
 
   const fetchBatches = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/batches`);
+      const response = await axios.get(`https://the-project-club-backend.onrender.com/api/batches`);
 
       if (response.data?.success && response.data.batches) {
         setBatches(response.data.batches);
@@ -113,7 +113,7 @@ function RegistrationForm() {
   const fetchBatchDetails = async (batchId) => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/batches/${batchId}`
+        `https://the-project-club-backend.onrender.com/api/batches/${batchId}`
       );
 
       if (response.data && response.data.batch) {
@@ -197,7 +197,7 @@ function RegistrationForm() {
         const token = localStorage.getItem('token');
         try {
           const profileResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL}/auth/profile`,
+            `https://the-project-club-backend.onrender.com/api/auth/profile`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
 
@@ -232,7 +232,7 @@ function RegistrationForm() {
       };
 
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/registration`,
+        `https://the-project-club-backend.onrender.com/api/registration`,
         registrationData
       );
 
@@ -252,7 +252,7 @@ function RegistrationForm() {
         handler: async function (paymentResponse) {
           try {
             const verifyResponse = await axios.post(
-              `${import.meta.env.VITE_API_URL}/registration/verify-payment`,
+              `https://the-project-club-backend.onrender.com/api/registration/verify-payment`,
               {
                 orderId: orderId,
                 paymentId: paymentResponse.razorpay_payment_id,

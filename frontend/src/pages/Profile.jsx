@@ -29,7 +29,7 @@ function Profile() {
       }
 
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/auth/profile`,
+        `https://the-project-club-backend.onrender.com/api/auth/profile`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -63,7 +63,7 @@ function Profile() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/auth/profile`,
+        `https://the-project-club-backend.onrender.com/api/auth/profile`,
         { name: editData.name, phone: editData.phone },
         { headers: { Authorization: `Bearer ${token}` } }
       );
