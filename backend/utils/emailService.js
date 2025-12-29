@@ -1,17 +1,51 @@
 const nodemailer = require('nodemailer');
 
+/**
+ * Render Free friendly Gmail SMTP setup.
+ * Keeps ALL your existing functions and templates exactly the same,
+ * only updates the transporter to be more reliable on Render.
+ *
+ * ENV:
+ * - ADMIN_EMAIL
+ * - ADMIN_EMAIL_PASSWORD  (Gmail App Password)
+ * - ADMIN_RECIPIENT
+ */
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
     user: process.env.ADMIN_EMAIL,
     pass: process.env.ADMIN_EMAIL_PASSWORD,
   },
+
+  // Resilience settings (helps avoid connection/socket timeouts on free hosts)
+  pool: true,
+  maxConnections: 3,
+  maxMessages: 50,
+  rateDelta: 1000,
+  rateLimit: 5,
+  connectionTimeout: 60000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+
+  tls: {
+    minVersion: 'TLSv1.2',
+  },
 });
+
+// Optional: verify once at startup (won't crash server)
+transporter.verify().then(
+  () => console.log('✅ Email service ready'),
+  (err) => console.error('❌ Email service not ready:', err?.message || err)
+);
+
 
 // Send email to admin
 const sendAdminNotification = async (registration) => {
   const emailBody = `
 New Student Registered!
+
 
 Name: ${registration.name}
 Email: ${registration.email}
@@ -26,6 +60,7 @@ Registered At: ${new Date(registration.created_at).toLocaleString('en-IN')}
 Referral Source: ${registration.referral_source || 'N/A'}
 Notes: ${registration.notes || 'N/A'}
 `;
+
 
   try {
     await transporter.sendMail({
@@ -99,11 +134,13 @@ Notes: ${registration.notes || 'N/A'}
       `,
     });
 
+
     console.log('✅ Admin notification sent successfully');
   } catch (error) {
     console.error('❌ Error sending admin notification:', error);
   }
 };
+
 
 // Send confirmation email to student
 const sendStudentConfirmation = async (registration, whatsappLink) => {
@@ -124,10 +161,13 @@ const sendStudentConfirmation = async (registration, whatsappLink) => {
     `
     : '';
 
+
   const emailBody = `
 Hi ${registration.name},
 
+
 Thank you for enrolling in ${registration.batch_title}! Your payment has been confirmed.
+
 
 Course: ${registration.batch_title}
 Amount Paid: ₹${registration.amount}
@@ -135,11 +175,14 @@ Student ID: ${registration.student_id}
 Email: ${registration.email}
 Phone: ${registration.phone}
 
+
 If you have any questions, feel free to reach out to us at ${process.env.ADMIN_EMAIL}
+
 
 Best regards,
 The Project Club Team
 `;
+
 
   try {
     await transporter.sendMail({
@@ -221,11 +264,13 @@ The Project Club Team
       `,
     });
 
+
     console.log('✅ Student confirmation email sent successfully');
   } catch (error) {
     console.error('❌ Error sending student confirmation:', error);
   }
 };
+
 
 // ✅ NEW: Send max capacity alert to admin
 const sendMaxCapacityAlert = async (batch) => {
@@ -287,11 +332,13 @@ const sendMaxCapacityAlert = async (batch) => {
       `,
     });
 
+
     console.log(`✅ Max capacity alert sent for ${batch.title}`);
   } catch (error) {
     console.error('❌ Error sending max capacity alert:', error);
   }
 };
+
 
 module.exports = {
   sendAdminNotification,
