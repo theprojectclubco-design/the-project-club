@@ -313,13 +313,11 @@ exports.verifyPayment = async (req, res) => {
 
     // ✅ FIX: Check if already paid to prevent double counting
     if (reg.payment_status === 'PAID') {
+      console.log(`⚠️ Payment already processed. Skipping increment.`);
       return res.json({
         success: true,
-        message: 'Already paid',
-        data: {
-          ...reg,
-          whatsapp_link: whatsappLink,
-        },
+        message: 'Payment already verified',
+        data: { ...reg, whatsapp_link: whatsappLink }
       });
     }
 
@@ -372,9 +370,12 @@ exports.verifyPayment = async (req, res) => {
     }
 
     try {
-      appendToExcel(updated);
-      sendAdminNotification(updated);
-      sendStudentConfirmation(updated, whatsappLink);
+      await appendToExcel(updated);
+      console.log('✅ Excel updated');
+      await sendAdminNotification(updated);
+      console.log('✅ Admin email sent');
+      await sendStudentConfirmation(updated, whatsappLink);
+      console.log('✅ Student email sent');
       console.log(`✅ All notifications sent | WhatsApp: ${whatsappLink}`);
     } catch (notifError) {
       console.error('⚠️ Notification error:', notifError);
