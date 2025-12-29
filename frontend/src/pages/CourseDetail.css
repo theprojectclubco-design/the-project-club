@@ -1,0 +1,292 @@
+/* Container & Layout */
+.course-detail-page {
+  min-height: 100vh;
+  padding-top: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.course-detail-hero {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: white;
+  margin-bottom: 2rem;
+}
+
+.course-detail-hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.course-subtitle {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  max-width: 700px;
+  margin: 0 auto 2rem;
+}
+
+.demo-badge {
+  display: inline-block;
+  background: #fbbf24;
+  color: #1f2937;
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.demo-description {
+  font-size: 1rem;
+  opacity: 0.85;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.course-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* Main Content */
+.course-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.course-info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.course-info-card h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+/* Info Grid */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.info-value {
+  font-size: 1.1rem;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+/* Technologies */
+.tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tech-tag {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Projects */
+.projects-list {
+  list-style: none;
+  padding: 0;
+}
+
+.projects-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.projects-list li:last-child {
+  border-bottom: none;
+}
+
+.projects-list li::before {
+  content: "🚀 ";
+  margin-right: 0.5rem;
+}
+
+/* Instructor */
+.instructor-section .instructor-profile {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.instructor-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #667eea;
+}
+
+.instructor-section h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+.instructor-section p {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+/* Sidebar */
+.course-sidebar {
+  position: sticky;
+  top: 2rem;
+}
+
+.enrollment-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.price-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.price-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.price-amount {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.enrolled-badge {
+  background: #10b981;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.enroll-btn,
+.access-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.enroll-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.enroll-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+}
+
+.access-btn {
+  background: #10b981;
+  color: white;
+}
+
+.access-btn:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+/* Loading & Error States */
+.loading,
+.error {
+  text-align: center;
+  padding: 3rem;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.error {
+  color: #ef4444;
+  background: white;
+  border-radius: 12px;
+  margin: 2rem auto;
+  max-width: 500px;
+}
+
+.back-btn {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.back-btn:hover {
+  background: #5568d3;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .course-detail-container {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .course-detail-hero h1 {
+    font-size: 1.8rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .instructor-section .instructor-profile {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .price-amount {
+    font-size: 2rem;
+  }
+}
