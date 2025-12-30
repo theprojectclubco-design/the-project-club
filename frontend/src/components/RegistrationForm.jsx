@@ -292,19 +292,48 @@ function RegistrationForm() {
           color: '#667eea',
         },
         modal: {
-          ondismiss: function () {
+          ondismiss: async function () {
+            try {
+              await axios.post(
+                `https://the-project-club-backend.onrender.com/api/registration/mark-failed`,
+                {
+                  registrationId: registrationId,
+                  status: 'CANCELLED',
+                  reason: 'User closed Razorpay modal',
+                }
+              );
+            } catch (e) {
+              console.log('mark-failed (dismiss) ignored:', e?.message || e);
+            }
+
             setLoading(false);
             setError('Payment cancelled. You can try again when ready.');
           },
         },
+
       };
 
       const razorpayInstance = new window.Razorpay(options);
-      razorpayInstance.on('payment.failed', function (response) {
+      razorpayInstance.on('payment.failed', async function (response) {
         const errorMsg = response.error?.description || 'Payment failed. Please try again.';
+
+        try {
+          await axios.post(
+            `https://the-project-club-backend.onrender.com/api/registration/mark-failed`,
+            {
+              registrationId: registrationId,
+              status: 'FAILED',
+              reason: errorMsg,
+            }
+          );
+        } catch (e) {
+          console.log('mark-failed (failed) ignored:', e?.message || e);
+        }
+
         setError(`Payment failed: ${errorMsg}`);
         setLoading(false);
       });
+
 
       razorpayInstance.open();
     } catch (error) {
