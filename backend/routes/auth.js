@@ -1,12 +1,19 @@
 const express = require('express');
 const router = express.Router();
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+const { Resend } = require('resend');
 const supabase = require('../supabaseClient');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
+
   if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
@@ -24,7 +31,7 @@ const verifyToken = (req, res, next) => {
 const generateStudentId = async () => {
   try {
     const year = new Date().getFullYear();
-    
+
     // Count existing users with student_id
     const { count, error } = await supabase
       .from('users')
@@ -41,7 +48,31 @@ const generateStudentId = async () => {
   }
 };
 
-// POST /api/auth/signup - Register new user
+const buildVerifyEmailHtml = (verifyUrl) => `
+  <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <h2>Verify your email</h2>
+    <p>Click the link below to verify your email for The Project Club:</p>
+    <p><a href="${verifyUrl}">Verify Email</a></p>
+    <p>This link will expire in 30 minutes.</p>
+    <p>If you did not create this account, you can ignore this email.</p>
+  </div>
+`;
+
+async function sendVerificationEmail({ email, token }) {
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const verifyUrl = `${frontend}/verify-email?token=${encodeURIComponent(token)}`;
+
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to: [email],
+    subject: 'Verify your email - The Project Club',
+    html: buildVerifyEmailHtml(verifyUrl),
+  });
+
+  if (error) throw error;
+}
+
+// POST /api/auth/signup - Register new user (now requires email verification)
 router.post('/signup', async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
@@ -81,53 +112,160 @@ router.post('/signup', async (req, res) => {
     // ✅ Generate student ID
     const studentId = await generateStudentId();
 
-    // Create user with student_id
+    // Create email verification token + expiry (30 minutes)
+    const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+    const emailVerifyExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    // Create user with student_id + email verification fields
     const { data: newUser, error } = await supabase
       .from('users')
       .insert([
         {
-          name: name,
-          email: email,
+          name,
+          email,
           password: hashedPassword,
           phone: phone || null,
-          student_id: studentId, // ✅ Add student_id
+          student_id: studentId,
           created_at: new Date().toISOString(),
+
+          email_verified: false,
+          email_verify_token: emailVerifyToken,
+          email_verify_expires_at: emailVerifyExpiresAt,
         },
       ])
       .select()
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     console.log(`✅ New user created: ${name} | Student ID: ${studentId}`);
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: newUser.id, email: newUser.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+    // Send verification email using Resend
+    try {
+      await sendVerificationEmail({ email, token: emailVerifyToken });
+    } catch (e) {
+      console.error('❌ Failed to send verification email:', e);
+      // account exists; user can click "resend" from login
+    }
 
-    // Return user data without password
+    // Do NOT issue JWT on signup (force verification first)
     const { password: _, ...userWithoutPassword } = newUser;
 
-    res.json({
+    return res.json({
       success: true,
-      token,
+      message: 'Account created. Please verify your email before logging in.',
       user: userWithoutPassword,
+      requiresEmailVerification: true,
     });
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to create account',
     });
   }
 });
 
-// POST /api/auth/login - Login user
+// GET /api/auth/verify-email?token=xxxxx
+router.get('/verify-email', async (req, res) => {
+  try {
+    const token = req.query.token;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Missing token' });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email_verified, email_verify_expires_at')
+      .eq('email_verify_token', token)
+      .single();
+
+    if (error || !user) {
+      return res.status(400).json({ success: false, message: 'Invalid verification link' });
+    }
+
+    const expired =
+      !user.email_verify_expires_at || new Date(user.email_verify_expires_at) < new Date();
+
+    if (expired) {
+      return res.status(400).json({ success: false, message: 'Verification link expired' });
+    }
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        email_verified: true,
+        email_verify_token: null,
+        email_verify_expires_at: null,
+      })
+      .eq('id', user.id);
+
+    if (updateError) throw updateError;
+
+    return res.json({
+      success: true,
+      message: 'Email verified successfully. You can login now.',
+    });
+  } catch (error) {
+    console.error('Verify email error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Email verification failed',
+    });
+  }
+});
+
+// POST /api/auth/resend-verification
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email_verified')
+      .eq('email', email)
+      .single();
+
+    // Avoid leaking whether a user exists
+    if (error || !user) {
+      return res.json({ success: true, message: 'If the email exists, a verification link was sent.' });
+    }
+
+    if (user.email_verified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified' });
+    }
+
+    const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+    const emailVerifyExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        email_verify_token: emailVerifyToken,
+        email_verify_expires_at: emailVerifyExpiresAt,
+      })
+      .eq('id', user.id);
+
+    if (updateError) throw updateError;
+
+    await sendVerificationEmail({ email, token: emailVerifyToken });
+
+    return res.json({ success: true, message: 'Verification email sent.' });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to resend verification email',
+    });
+  }
+});
+
+// POST /api/auth/login - Login user (blocked until email verified)
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -154,9 +292,17 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Block if not verified
+    if (!user.email_verified) {
+      return res.status(403).json({
+        success: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email before logging in.',
+      });
+    }
+
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -165,23 +311,21 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: '30d',
+    });
 
     // Return user data without password
     const { password: _, ...userWithoutPassword } = user;
 
-    res.json({
+    return res.json({
       success: true,
       token,
       user: userWithoutPassword,
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Login failed',
     });
@@ -193,7 +337,7 @@ router.get('/verify', verifyToken, async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, email, phone, created_at, student_id')
+      .select('id, name, email, phone, created_at, student_id, email_verified')
       .eq('id', req.userId)
       .single();
 
@@ -204,13 +348,13 @@ router.get('/verify', verifyToken, async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       user,
     });
   } catch (error) {
     console.error('Verify token error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Token verification failed',
     });
@@ -225,7 +369,7 @@ router.get('/profile', verifyToken, async (req, res) => {
     // Fetch user data
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, name, email, phone, created_at, student_id')
+      .select('id, name, email, phone, created_at, student_id, email_verified')
       .eq('id', userId)
       .single();
 
@@ -261,7 +405,6 @@ router.get('/profile', verifyToken, async (req, res) => {
       console.error('Enrollment fetch error:', enrollError);
     }
 
-    // Format enrollment data for frontend
     const formattedEnrollments = (enrollments || []).map((enrollment) => ({
       id: enrollment.id,
       batch_id: enrollment.batch_id,
@@ -273,7 +416,7 @@ router.get('/profile', verifyToken, async (req, res) => {
       batch_title: enrollment.batches?.title,
     }));
 
-    res.json({
+    return res.json({
       success: true,
       user: {
         ...userData,
@@ -282,7 +425,7 @@ router.get('/profile', verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching profile:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to fetch profile',
     });
@@ -294,15 +437,11 @@ router.put('/profile', verifyToken, async (req, res) => {
   try {
     const { name, phone } = req.body;
 
-    // Update user data
     const { data: updated, error } = await supabase
       .from('users')
-      .update({
-        name: name,
-        phone: phone,
-      })
+      .update({ name, phone })
       .eq('id', req.userId)
-      .select('id, name, email, phone, created_at, student_id')
+      .select('id, name, email, phone, created_at, student_id, email_verified')
       .single();
 
     if (error) {
@@ -312,14 +451,14 @@ router.put('/profile', verifyToken, async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       user: updated,
       message: 'Profile updated successfully',
     });
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to update profile',
     });

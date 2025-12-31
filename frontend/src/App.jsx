@@ -14,6 +14,8 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import CourseDetail from './pages/CourseDetail';
 import './App.css';
+import VerifyEmail from './pages/VerifyEmail';
+
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/register" element={<RegistrationForm />} />
             <Route path="/success" element={<SuccessPage />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+
 
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />

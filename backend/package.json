@@ -16,7 +16,7 @@
     "exceljs": "^4.4.0",
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^7.0.11",
+    "nodemailer": "^7.0.12",
     "razorpay": "^2.8.6",
     "resend": "^6.6.0",
     "twilio": "^5.11.1"

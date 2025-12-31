@@ -139,3 +139,31 @@
     font-size: 1.5rem;
   }
 }
+.password-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.toggle-btn {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.auth-success {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #065f46;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.auth-btn.secondary {
+  margin-top: 10px;
+  background: #111827;
+}
