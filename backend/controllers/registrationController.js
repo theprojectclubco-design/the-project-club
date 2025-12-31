@@ -16,7 +16,7 @@ const razorpay = new Razorpay({
 
 /**
  * Render Free blocks outbound SMTP ports (25/465/587), so Nodemailer will time out.
- * These wrappers ensure registration/payment still succeeds even if emails fail.
+ * These wrappers ensure registration/payment still succeeds even if emails fail. [web:786]
  */
 const safeNotify = async (label, fn) => {
   try {
@@ -46,13 +46,15 @@ const safeCapacityAlert = async (batch) =>
 // Helper: Get or create user
 const getOrCreateUser = async (name, email, phone) => {
   try {
-    const { data: existingUser, error: existingErr } = await supabase
+    const { data: existingUser } = await supabase
       .from('users')
       .select('id, student_id')
       .eq('email', email)
       .single();
 
-    if (!existingErr && existingUser) return existingUser;
+    if (existingUser) {
+      return existingUser;
+    }
 
     const { data: newUser, error: userError } = await supabase
       .from('users')
@@ -70,45 +72,69 @@ const getOrCreateUser = async (name, email, phone) => {
 
 // ✅ Get WhatsApp group link
 const getWhatsAppGroupLink = (gender, isDemo) => {
+  console.log(`\n========================================`);
+  console.log(`📱 WHATSAPP LINK SELECTION`);
+  console.log(`========================================`);
+  console.log(`Gender: ${gender}`);
+  console.log(`isDemo: ${isDemo}`);
+  console.log(`--------`);
+
   let selectedLink = null;
+  let selectedGroup = null;
+
   const genderLower = (gender || '').toLowerCase();
 
-  if (genderLower === 'male' && isDemo) selectedLink = process.env.WHATSAPP_MALE_DEMO;
-  else if (genderLower === 'male' && !isDemo) selectedLink = process.env.WHATSAPP_MALE_PAID;
-  else if (genderLower === 'female' && isDemo) selectedLink = process.env.WHATSAPP_FEMALE_DEMO;
-  else if (genderLower === 'female' && !isDemo) selectedLink = process.env.WHATSAPP_FEMALE_PAID;
+  if (genderLower === 'male' && isDemo) {
+    selectedLink = process.env.WHATSAPP_MALE_DEMO;
+    selectedGroup = 'MALE DEMO';
+  } else if (genderLower === 'male' && !isDemo) {
+    selectedLink = process.env.WHATSAPP_MALE_PAID;
+    selectedGroup = 'MALE PAID';
+  } else if (genderLower === 'female' && isDemo) {
+    selectedLink = process.env.WHATSAPP_FEMALE_DEMO;
+    selectedGroup = 'FEMALE DEMO';
+  } else if (genderLower === 'female' && !isDemo) {
+    selectedLink = process.env.WHATSAPP_FEMALE_PAID;
+    selectedGroup = 'FEMALE PAID';
+  }
+
+  console.log(`✅ Selected Group: ${selectedGroup}`);
+  console.log(`✅ Selected Link: ${selectedLink || '❌ UNDEFINED'}`);
+  console.log(`========================================\n`);
 
   return selectedLink;
 };
 
-// ✅ Find existing registration for same batch (prefer latest)
-const findExistingRegistration = async (email, phone, batchId, userId) => {
+// Check if user already registered for this batch
+const checkDuplicateRegistration = async (email, phone, batchId, userId) => {
   try {
     const { data, error } = await supabase
       .from('registrations')
-      .select('id, email, phone, batch_title, payment_status, student_id, razorpay_order_id, created_at')
+      .select('id, email, phone, batch_title, payment_status, student_id')
       .eq('batch_id', batchId)
-      .or(`email.eq.${email},phone.eq.${phone},user_id.eq.${userId}`)
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .or(`email.eq.${email},phone.eq.${phone},user_id.eq.${userId}`);
 
     if (error) {
       console.error('❌ Error checking duplicate:', error);
       return null;
     }
 
-    if (data && data.length > 0) return data[0];
+    if (data && data.length > 0) {
+      return data[0];
+    }
+
     return null;
   } catch (error) {
-    console.error('❌ Error in findExistingRegistration:', error);
+    console.error('❌ Error in checkDuplicateRegistration:', error);
     return null;
   }
 };
 
-// ✅ NEW: Create Batch 2 automatically (kept same logic you already had)
+// ✅ NEW: Create Batch 2 automatically
 const createBatch2 = async (originalBatch) => {
   try {
     console.log(`\n🔄 Creating Batch 2 for: ${originalBatch.title}`);
+
     const newStartDate = new Date(originalBatch.start_date);
     newStartDate.setMonth(newStartDate.getMonth() + 2);
 
@@ -145,7 +171,10 @@ const createBatch2 = async (originalBatch) => {
       .single();
 
     if (error) throw error;
-    console.log(`✅ Batch 2 created successfully: ${newBatch.title} (ID: ${newBatch.id})`);
+
+    console.log(
+      `✅ Batch 2 created successfully: ${newBatch.title} (ID: ${newBatch.id})`
+    );
     return newBatch;
   } catch (error) {
     console.error('❌ Error creating Batch 2:', error);
@@ -156,12 +185,28 @@ const createBatch2 = async (originalBatch) => {
 // 1) Create order
 exports.createOrder = async (req, res) => {
   try {
-    const { name, fullName, email, phone, experienceLevel, batchId, referralSource, notes, gender } =
-      req.body;
+    const {
+      name,
+      fullName,
+      email,
+      phone,
+      experienceLevel,
+      batchId,
+      referralSource,
+      notes,
+      gender,
+    } = req.body;
 
     const studentName = name || fullName;
 
-    if (!studentName || !email || !phone || !experienceLevel || !batchId || !gender) {
+    if (
+      !studentName ||
+      !email ||
+      !phone ||
+      !experienceLevel ||
+      !batchId ||
+      !gender
+    ) {
       return res.status(400).json({
         success: false,
         message: 'All required fields must be provided including gender',
@@ -175,12 +220,16 @@ exports.createOrder = async (req, res) => {
       .single();
 
     if (batchError || !batch) {
-      return res.status(404).json({ success: false, message: 'Batch not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'Batch not found' });
     }
 
-    // ✅ Check capacity (only counts PAID, because registered_count increments on PAID)
-    if ((batch.registered_count || 0) >= batch.max_seats) {
+    // ✅ FIX: Check if batch is full
+    if (batch.registered_count >= batch.max_seats) {
+      // This can fail on Render Free due to SMTP restrictions; ignore safely.
       await safeCapacityAlert(batch);
+
       const batch2 = await createBatch2(batch);
 
       if (batch2) {
@@ -201,21 +250,29 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // Get or create user
     const user = await getOrCreateUser(studentName, email, phone);
 
-    // ✅ IMPORTANT FIX:
-    // - If existing is PAID => block
-    // - Else (PENDING/FAILED/CANCELLED) => create new Razorpay order and UPDATE existing row
-    const existingReg = await findExistingRegistration(email, phone, batchId, user.id);
+    // Check for duplicate registration
+    const existingReg = await checkDuplicateRegistration(
+      email,
+      phone,
+      batchId,
+      user.id
+    );
 
-    if (existingReg && existingReg.payment_status === 'PAID') {
+    if (existingReg) {
       let identifier = 'account';
       if (existingReg.email === email) identifier = 'email';
       else if (existingReg.phone === phone) identifier = 'phone number';
 
       return res.status(400).json({
         success: false,
-        message: `You have already registered for "${existingReg.batch_title}" with this ${identifier}. Your enrollment is confirmed!`,
+        message: `You have already registered for "${existingReg.batch_title}" with this ${identifier}. ${
+          existingReg.payment_status === 'PAID'
+            ? 'Your enrollment is confirmed!'
+            : 'Please complete your pending payment or contact support.'
+        }`,
         duplicate: true,
         existingRegistration: {
           batchTitle: existingReg.batch_title,
@@ -234,42 +291,6 @@ exports.createOrder = async (req, res) => {
       notes: { name: studentName, email, phone, batchId },
     });
 
-    // ✅ If there is an existing non-paid registration, reuse it (retry flow)
-    if (existingReg && existingReg.id) {
-      const { data: updatedReg, error: updErr } = await supabase
-        .from('registrations')
-        .update({
-          razorpay_order_id: order.id,
-          payment_status: 'PENDING',
-          notes: notes || null,
-          referral_source: referralSource || null,
-        })
-        .eq('id', existingReg.id)
-        .select()
-        .single();
-
-      if (updErr) {
-        return res.status(500).json({ success: false, message: updErr.message });
-      }
-
-      console.log(
-        `🔁 Re-using existing registration (retry) for ${studentName} | Batch: ${batch.title} | Student ID: ${user.student_id}`
-      );
-
-      return res.status(201).json({
-        success: true,
-        message: 'Order created successfully',
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        registrationId: updatedReg.id,
-        studentId: user.student_id,
-        isDemo,
-        reused: true,
-      });
-    }
-
-    // ✅ Create brand-new registration only if none exists
     const { data: registration, error: regError } = await supabase
       .from('registrations')
       .insert([
@@ -282,7 +303,6 @@ exports.createOrder = async (req, res) => {
           batch_id: batchId,
           batch_title: batch.title,
           amount: Number(batch.fee),
-          currency: 'INR',
           payment_status: 'PENDING',
           razorpay_order_id: order.id,
           referral_source: referralSource || null,
@@ -296,7 +316,9 @@ exports.createOrder = async (req, res) => {
 
     if (regError) {
       console.error('❌ Registration creation error:', regError);
-      return res.status(500).json({ success: false, message: regError.message });
+      return res
+        .status(500)
+        .json({ success: false, message: regError.message });
     }
 
     console.log(
@@ -312,53 +334,12 @@ exports.createOrder = async (req, res) => {
       registrationId: registration.id,
       studentId: user.student_id,
       isDemo,
-      reused: false,
     });
   } catch (error) {
     console.error('❌ createOrder error:', error);
     return res.status(500).json({
       success: false,
       message: 'Error creating order',
-      error: error.message,
-    });
-  }
-};
-
-// ✅ NEW: Mark payment cancelled/failed (frontend will call this)
-exports.markPaymentFailed = async (req, res) => {
-  try {
-    const { registrationId, status, reason, razorpay_order_id } = req.body;
-
-    if (!registrationId && !razorpay_order_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'registrationId or razorpay_order_id is required',
-      });
-    }
-
-    const normalized =
-      status && ['FAILED', 'CANCELLED', 'PENDING'].includes(status) ? status : 'FAILED';
-
-    let query = supabase.from('registrations').update({
-      payment_status: normalized,
-      notes: reason ? `Payment ${normalized}: ${reason}` : null,
-    });
-
-    if (registrationId) query = query.eq('id', registrationId);
-    else query = query.eq('razorpay_order_id', razorpay_order_id);
-
-    const { data, error } = await query.select().single();
-
-    if (error) {
-      return res.status(500).json({ success: false, message: error.message });
-    }
-
-    return res.json({ success: true, message: 'Payment status updated', data });
-  } catch (error) {
-    console.error('❌ markPaymentFailed error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error updating payment status',
       error: error.message,
     });
   }
@@ -377,6 +358,7 @@ exports.verifyPayment = async (req, res) => {
     }
 
     const body = orderId + '|' + paymentId;
+
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(body)
@@ -405,8 +387,9 @@ exports.verifyPayment = async (req, res) => {
     const isDemo = Number(reg.amount) <= 1;
     const whatsappLink = getWhatsAppGroupLink(reg.gender, isDemo);
 
-    // ✅ Prevent double counting
+    // ✅ FIX: Check if already paid to prevent double counting
     if (reg.payment_status === 'PAID') {
+      console.log(`⚠️ Payment already processed. Skipping increment.`);
       return res.json({
         success: true,
         message: 'Payment already verified',
@@ -414,6 +397,7 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
+    // Update payment status
     const { data: updated, error: updErr } = await supabase
       .from('registrations')
       .update({
@@ -433,7 +417,7 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
-    // ✅ Increment registered_count only after PAID
+    // ✅ FIX: Increment registered_count ONLY once per unique user
     const { data: batch, error: batchErr } = await supabase
       .from('batches')
       .select('id, registered_count, max_seats, title')
@@ -443,17 +427,32 @@ exports.verifyPayment = async (req, res) => {
     if (!batchErr && batch) {
       const newCount = (batch.registered_count || 0) + 1;
 
-      await supabase.from('batches').update({ registered_count: newCount }).eq('id', updated.batch_id);
+      await supabase
+        .from('batches')
+        .update({ registered_count: newCount })
+        .eq('id', updated.batch_id);
 
+      console.log(
+        `✅ Updated registered_count for ${batch.title}: ${newCount}/${batch.max_seats}`
+      );
+
+      // Check if max capacity reached
       if (newCount >= batch.max_seats) {
+        console.log(`⚠️ Batch ${batch.title} has reached maximum capacity!`);
         await safeCapacityAlert(batch);
       }
     }
 
-    // Notifications must not break payment
+    /**
+     * IMPORTANT:
+     * Notifications (Excel + emails) must never break verifyPayment.
+     * On Render Free, SMTP is blocked so emails will fail; these are best-effort. [web:786]
+     */
     await safeExcel(updated);
     await safeAdminEmail(updated);
     await safeStudentEmail(updated, whatsappLink);
+
+    console.log(`✅ Payment verified | WhatsApp: ${whatsappLink || 'N/A'}`);
 
     return res.json({
       success: true,

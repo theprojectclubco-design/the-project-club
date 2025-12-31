@@ -56,7 +56,7 @@
 
 /* ✅ FIXED - Make section headings black/dark */
 .form-section h2 {
-  color: #1a1a1a; /* Dark black instead of light gray */
+  color: #1a1a1a;
   font-size: 1.3rem;
   font-weight: 700;
   margin-bottom: 1.2rem;
@@ -72,7 +72,7 @@
 .form-group label {
   display: block;
   margin-bottom: 0.6rem;
-  color: #1a1a1a; /* Changed from #333 to darker black */
+  color: #1a1a1a;
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -82,6 +82,7 @@
   margin-left: 2px;
 }
 
+/* ✅ INPUTS/SELECTS -> white background */
 .form-group input,
 .form-group select {
   width: 100%;
@@ -91,17 +92,19 @@
   font-size: 1rem;
   transition: all 0.3s;
   box-sizing: border-box;
-  color: #1a1a1a; /* ✅ Make input text dark */
+  color: #1a1a1a;
+  background-color: #ffffff; /* ✅ changed */
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(216, 217, 220, 0.882);
+  background-color: #ffffff; /* ✅ keep white even on focus */
 }
 
-/* ✅ Pre-filled field indicator */
+/* ✅ Pre-filled field indicator (still light blue) */
 .prefilled {
   background-color: #f0f9ff !important;
   border-color: #667eea !important;
@@ -133,6 +136,7 @@
   transition: all 0.3s;
   flex: 1;
   justify-content: center;
+  background: #ffffff; /* ✅ keep white */
 }
 
 .gender-option:hover {
@@ -157,7 +161,7 @@
 
 .gender-option span {
   font-size: 0.95rem;
-  color: #1a1a1a; /* ✅ Make gender option text dark */
+  color: #1a1a1a;
   transition: color 0.3s;
 }
 
@@ -179,7 +183,7 @@
 
 .batch-details-header h3 {
   margin: 0;
-  color: #1a1a1a; /* ✅ Make batch title dark */
+  color: #1a1a1a;
   font-size: 1.2rem;
 }
 
@@ -230,7 +234,7 @@
 
 .info-item .value {
   font-size: 1rem;
-  color: #1a1a1a; /* ✅ Make values dark */
+  color: #1a1a1a;
   font-weight: 600;
 }
 
@@ -274,7 +278,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .form-note {

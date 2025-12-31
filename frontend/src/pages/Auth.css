@@ -60,6 +60,7 @@
   font-size: 0.95rem;
 }
 
+/* ✅ INPUTS -> white background */
 .auth-form input {
   width: 100%;
   padding: 12px 15px;
@@ -67,12 +68,15 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
+  background-color: #ffffff; /* ✅ changed */
+  color: #333; /* ✅ ensure dark text */
 }
 
 .auth-form input:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background-color: #ffffff; /* ✅ keep white on focus */
 }
 
 .auth-form input:disabled {
