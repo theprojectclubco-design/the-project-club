@@ -315,6 +315,14 @@ router.post('/login', async (req, res) => {
         message: 'Please verify your email before logging in.',
       });
     }
+    // inside POST /api/auth/login, after fetching user
+      if (!user.password || typeof user.password !== 'string') {
+        console.error('Invalid password hash in DB:', typeof user.password);
+        return res.status(500).json({
+          success: false,
+          message: 'Account password is corrupted. Please reset password.',
+        });
+      }
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -352,7 +360,7 @@ router.get('/verify', verifyToken, async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, email, phone, created_at, student_id, email_verified')
+      .select('id, name, email, phone, password, created_at, student_id, email_verified')
       .eq('id', req.userId)
       .single();
 

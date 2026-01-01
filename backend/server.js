@@ -4,7 +4,6 @@ const cors = require('cors');
 const { router: authRouter } = require('./routes/auth');
 const batchRouter = require('./routes/batch');
 const contactRoutes = require('./routes/contact'); // ⭐ ADD THIS
-const auth = require('./routes/auth');
 
 const app = express();
 
@@ -12,7 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/api/auth', auth.router);
 
 // Log all requests (for debugging)
 app.use((req, res, next) => {
