@@ -61,7 +61,7 @@ async function sendVerificationEmail({ email, token }) {
   const verifyUrl = `${frontend}/verify-email?token=${encodeURIComponent(token)}`;
 
   const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM,
+    from: `The Project Club <${process.env.FROM_EMAIL || 'onboarding@resend.dev'}>`,
     to: [email],
     subject: 'Verify your email - The Project Club',
     html: buildVerifyEmailHtml(verifyUrl),
@@ -254,9 +254,9 @@ router.post('/resend-verification', async (req, res) => {
     const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
     const verifyUrl = `${frontend}/verify-email?token=${encodeURIComponent(emailVerifyToken)}`;
 
-    const from = process.env.EMAIL_FROM;
+    const from = `The Project Club <${process.env.FROM_EMAIL || 'onboarding@resend.dev'}>`;
     if (!from) {
-      return res.status(500).json({ success: false, message: 'EMAIL_FROM missing in backend env' });
+      return res.status(500).json({ success: false, message: 'FROM_EMAIL missing in backend env' });
     }
 
     const { data, error: sendError } = await resend.emails.send({
