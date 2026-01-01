@@ -63,83 +63,109 @@ function Home() {
 
         <div className="batches-grid">
           <div className="batch-card">
-            <h3>🚀 Learn the Art of Building Projects</h3>
-            <p className="description">
-              Understand what projects really are and why they matter in
-              academics, placements, and real-world problem solving. Learn about
-              mini projects, major projects, innovative ideas, and real-time
-              applications.
-            </p>
-          </div>
-
-          <div className="batch-card">
-            <h3>🔄 Master the Complete Project Lifecycle</h3>
-            <p className="description">
-              Gain an end-to-end understanding of how a project is built:
-              identifying real problems, generating and selecting ideas,
-              planning workflows, designing solutions, implementing and testing,
-              documenting and presenting your work. You’ll know what to do at
-              every stage, not just code blindly.
-            </p>
-          </div>
-
-          <div className="batch-card">
-            <h3>🛠 Build Strong Technical & Tool Skills</h3>
-            <p className="description">
-              Learn the essential skills required to work on modern projects:
-              programming fundamentals, development tools & GitHub, UI/UX design
-              basics, no-code & low-code tools, and research/teamwork tools.
-              Perfect for both coders and non-coders.
-            </p>
-          </div>
-
-          <div className="batch-card">
-            <h3>📌 Build Real Mini Projects (Step-by-Step)</h3>
-            <p className="description">
-              We guide you in building complete mini projects from scratch:
-              choosing the right idea, breaking it into modules, developing it
-              step by step, creating documentation & presentations, and
-              publishing your project on GitHub. No confusion. No guesswork.
-            </p>
-          </div>
-
-          <div className="batch-card">
-            <h3>🌐 Showcase Your Work Professionally</h3>
-            <p className="description">
-              Learn how to present your projects to the world: build a strong
-              project portfolio, create a clean GitHub profile, share projects
-              on LinkedIn, and explain your work confidently in interviews. Turn
-              your project into a career asset.
-            </p>
-          </div>
-
-          <div className="batch-card">
-            <h3>🏆 Get Ready for Hackathons & Competitions</h3>
-            <p className="description">
-              Understand how hackathons work and how to win them: selecting
-              problem statements, forming effective teams, pitching ideas
-              clearly, and building demos that impress.
-            </p>
-          </div>
-
-          <div className="batch-card">
-            <h3>💡 Support for Innovative & Real-Time Projects</h3>
-            <p className="description">
-              For students who want to go beyond basics, we provide guidance on
-              real-world and innovative project ideas, advanced tools and
-              technologies, and preparing for symposiums, tech events, and
-              competitions.
-            </p>
-          </div>
-
-          <div className="batch-card">
-            <h3>🎯 Our Goal</h3>
-            <p className="description">
-              To transform students from learners into creators, and from ideas
-              into impactful projects.
-            </p>
+            {/* 1 */}
+            <div className="learn-card">
+              <h3>🚀 Learn the Art of Building Projects</h3>
+              <ul className="learn-list">
+                <li>Understand what projects are and why they matter.</li>
+                <li>Choose between mini, major, and real-time projects.</li>
+                <li>Learn how projects help in academics and placements.</li>
+                <li>Explore innovative ideas and real-world problem solving.</li>
+              </ul>
+            </div>
           </div>
         </div>
+
+          <div className="batch-card">
+            {/* 2 */}
+            <div className="learn-card">
+              <h3>🧩 Master the Complete Project Lifecycle</h3>
+              <ul className="learn-list">
+                <li>Identify real problems and pick the right idea.</li>
+                <li>Plan workflow, modules, and solution design.</li>
+                <li>Build, test, and improve step-by-step.</li>
+                <li>Document and present your work confidently.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="batch-card">
+            {/* 3 */}
+            <div className="learn-card">
+              <h3>🛠️ Build Strong Technical & Tool Skills</h3>
+              <ul className="learn-list">
+                <li>Strengthen programming fundamentals.</li>
+                <li>Use dev tools + GitHub the right way.</li>
+                <li>Learn UI/UX basics and product thinking.</li>
+                <li>Work with teamwork + research tools.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="batch-card">
+            {/* 4 */}
+            <div className="learn-card">
+              <h3>📌 Build Real Mini Projects (Step-by-Step)</h3>
+              <ul className="learn-list">
+                <li>Pick a good project idea with guidance.</li>
+                <li>Break it into modules and build in order.</li>
+                <li>Create documentation + presentation.</li>
+                <li>Publish your work on GitHub (no guesswork).</li>
+              </ul>
+            </div>
+            </div>
+
+          <div className="batch-card">
+            {/* 5 */}
+            <div className="learn-card">
+              <h3>🌐 Showcase Your Work Professionally</h3>
+              <ul className="learn-list">
+                <li>Build a portfolio that looks professional.</li>
+                <li>Improve your GitHub profile structure.</li>
+                <li>Share projects on LinkedIn effectively.</li>
+                <li>Explain your work better in interviews.</li>
+              </ul>
+            </div>
+          </div>
+
+
+          <div className="batch-card">
+            {/* 6 */}
+            <div className="learn-card">
+              <h3>🏆 Get Ready for Hackathons & Competitions</h3>
+              <ul className="learn-list">
+                <li>Choose better problem statements.</li>
+                <li>Form teams and pitch ideas clearly.</li>
+                <li>Build demos that impress judges.</li>
+                <li>Learn how to stand out in competitions.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="batch-card">
+            {/* 7 */}
+            <div className="learn-card">
+              <h3>💡 Support for Innovative & Real-Time Projects</h3>
+              <ul className="learn-list">
+                <li>Get guidance for innovative project ideas.</li>
+                <li>Explore advanced tools and technologies.</li>
+                <li>Prepare for symposiums and tech events.</li>
+                <li>Build projects beyond the basics.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="batch-card">
+            {/* 8 */}
+            <div className="learn-card">
+              <h3>🎯 Our Goal</h3>
+              <ul className="learn-list">
+                <li>Turn learners into confident creators.</li>
+                <li>Convert ideas into impactful projects.</li>
+              </ul>
+            </div>
+          </div>
+        
       </section>
       {/* Footer */}
       <footer className="footer">
