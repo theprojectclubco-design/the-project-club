@@ -5,7 +5,8 @@ import './Auth.css';
 
 function Login() {
   const navigate = useNavigate();
-  const { login, resendVerification } = useAuth(); // uses AuthContext
+  const { login, resendVerification } = useAuth();
+
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const [error, setError] = useState('');
@@ -13,8 +14,6 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
-
-  // ✅ show resend button only when backend says email not verified
   const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleChange = (e) => {
@@ -58,8 +57,9 @@ function Login() {
     setLoading(true);
     try {
       const res = await resendVerification(formData.email);
+
       if (res.success) {
-        setInfo(res.message || 'Verification email sent. Check your inbox/spam.');
+        setInfo(res.message || 'Verification email sent. Check inbox/spam.');
       } else {
         setError(res.message || 'Failed to send verification email.');
       }
@@ -69,67 +69,74 @@ function Login() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <h2 className="auth-title">Login</h2>
-        <p className="auth-subtitle">Sign in to access your profile</p>
+    <div className="auth-container">
+      <div className="auth-box">
+        <div className="auth-header">
+          <h1>Login</h1>
+          <p>Sign in to access your profile</p>
+        </div>
 
         {error && <div className="auth-error">{error}</div>}
         {info && <div className="auth-success">{info}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label className="auth-label">Email</label>
-          <input
-            className="auth-input"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            required
-          />
-
-          <label className="auth-label">Password</label>
-          <div className="auth-password-field">
+          <div className="form-group">
+            <label>Email</label>
             <input
-              className="auth-input"
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              value={formData.password}
+              type="email"
+              name="email"
+              value={formData.email}
               onChange={handleChange}
-              placeholder="Enter password"
+              placeholder="Enter your email"
               required
-            />
-            <button
-              type="button"
-              className="show-hide-btn"
-              onClick={() => setShowPassword((s) => !s)}
               disabled={loading}
-            >
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
+            />
           </div>
 
-          <button className="auth-button" type="submit" disabled={loading}>
+          <div className="form-group">
+            <label>Password</label>
+            <div className="password-row">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter password"
+                required
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="toggle-btn"
+                onClick={() => setShowPassword((s) => !s)}
+                disabled={loading}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+
+          <button className="auth-btn" type="submit" disabled={loading}>
             {loading ? 'Signing in...' : 'Login'}
           </button>
+
+          {needsVerification && (
+            <button
+              type="button"
+              className="auth-btn secondary"
+              onClick={handleResend}
+              disabled={loading}
+            >
+              {loading ? 'Sending...' : 'Resend verification email'}
+            </button>
+          )}
         </form>
 
-        {/* ✅ Show resend only when needed */}
-        {needsVerification && (
-          <button
-            className="auth-button secondary"
-            onClick={handleResend}
-            disabled={loading}
-            style={{ marginTop: 10 }}
-          >
-            {loading ? 'Sending...' : 'Resend verification email'}
-          </button>
-        )}
-
-        <p className="auth-switch">
-          Don't have an account? <Link to="/signup">Sign Up</Link>
-        </p>
+        <div className="auth-footer">
+          <p>
+            Don't have an account? <Link to="/signup">Sign Up</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
