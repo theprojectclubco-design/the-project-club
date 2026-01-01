@@ -221,7 +221,7 @@ function Contact() {
               <div className="contact-details">
                 <h3>Instagram</h3>
                 <a 
-                  href="https://www.instagram.com/the_pc_2025/" 
+                  href="https://www.instagram.com/theprojectclub.co.in?igsh=MTR50Gg4M2hiN2kag%3D%3D" 
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
