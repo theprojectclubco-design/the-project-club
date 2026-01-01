@@ -7,6 +7,7 @@ function Home() {
 
   return (
     <div className="home">
+      <div className="home-container">
       {/* Hero */}
       <section className="hero">
         <div className="hero-content">
@@ -140,6 +141,23 @@ function Home() {
           </div>
         </div>
       </section>
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-inner">
+          <div className="footer-brand">
+            <h3>The Project Club</h3>
+            <p>Build projects. Build confidence. Build your career.</p>
+          </div>
+
+          <div className="footer-meta">
+            <p>© {new Date().getFullYear()} The Project Club. All rights reserved.</p>
+            <p className="footer-tagline">
+              Crafted for students who want to ship real work, not just “complete a course”.
+            </p>
+          </div>
+        </div>
+      </footer>
+      </div>
     </div>
   );
 }
