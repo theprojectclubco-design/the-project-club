@@ -1,23 +1,22 @@
 const express = require('express');
 const router = express.Router();
-
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-
 const { Resend } = require('resend');
 const supabase = require('../supabaseClient');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ✅ Standardized sender env var
+const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-
   if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
@@ -32,7 +31,6 @@ const generateStudentId = async () => {
   try {
     const year = new Date().getFullYear();
 
-    // Count existing users with student_id
     const { count, error } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
@@ -49,13 +47,13 @@ const generateStudentId = async () => {
 };
 
 const buildVerifyEmailHtml = (verifyUrl) => `
-  <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-    <h2>Verify your email</h2>
-    <p>Click the link below to verify your email for The Project Club:</p>
-    <p><a href="${verifyUrl}">Verify Email</a></p>
-    <p>This link will expire in 30 minutes.</p>
-    <p>If you did not create this account, you can ignore this email.</p>
-  </div>
+Click the link below to verify your email for The Project Club:
+
+${verifyUrl}
+
+This link will expire in 30 minutes.
+
+If you did not create this account, you can ignore this email.
 `;
 
 async function sendVerificationEmail({ email, token }) {
