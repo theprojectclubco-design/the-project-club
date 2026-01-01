@@ -431,3 +431,14 @@
     text-align: left;
   }
 }
+.learn-list {
+  margin: 12px 0 0;
+  padding-left: 18px; /* bullet indent */
+  color: #666;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.learn-list li {
+  margin: 8px 0;
+}
