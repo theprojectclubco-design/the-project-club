@@ -27,13 +27,12 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API_BASE_URL}/api/auth/verify`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setUser(response.data.user);
-      setLoading(false);
     } catch (error) {
       console.error('Token verification failed:', error);
       localStorage.removeItem('token');
       setUser(null);
+    } finally {
       setLoading(false);
     }
   };
@@ -46,7 +45,6 @@ export const AuthProvider = ({ children }) => {
       });
 
       const { token, user } = response.data;
-
       localStorage.setItem('token', token);
       setUser(user);
 
@@ -54,12 +52,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const code = error.response?.data?.code; // ex: EMAIL_NOT_VERIFIED
       const message = error.response?.data?.message || 'Login failed';
-
-      return {
-        success: false,
-        code,
-        message,
-      };
+      return { success: false, code, message };
     }
   };
 
@@ -67,9 +60,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData);
 
-      // NOTE:
-      // If backend returns token -> store it.
-      // If backend forces email verification and returns no token -> just return message.
       const { token, user, message, requiresEmailVerification } = response.data;
 
       if (token) localStorage.setItem('token', token);
@@ -88,12 +78,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ Call backend resend verification endpoint
   const resendVerification = async (email) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/resend-verification`, {
-        email,
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/api/auth/resend-verification`,
+        { email }
+      );
 
       return {
         success: true,
@@ -120,7 +110,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     resendVerification,
     isAuthenticated: !!user,
-    API_BASE_URL, // optional: useful for debugging
+    API_BASE_URL,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -128,10 +118,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
