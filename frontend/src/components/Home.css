@@ -219,3 +219,11 @@
     grid-template-columns: 1fr;
   }
 }
+.learn-intro {
+  max-width: 900px;
+  margin: 0 auto 25px auto;
+  text-align: center;
+  color: #444;
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
