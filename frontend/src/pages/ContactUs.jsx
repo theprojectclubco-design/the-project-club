@@ -225,7 +225,7 @@ function Contact() {
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  @the_pc_2025
+                  @theprojectclub.co.in
                 </a>
                 <p className="contact-desc">
                   Follow us for updates, tips, and behind-the-scenes content!
