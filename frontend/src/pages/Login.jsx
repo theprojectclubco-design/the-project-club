@@ -5,14 +5,17 @@ import './Auth.css';
 
 function Login() {
   const navigate = useNavigate();
-  const { login, resendVerification } = useAuth();
-
+  const { login, resendVerification } = useAuth(); // uses AuthContext
   const [formData, setFormData] = useState({ email: '', password: '' });
+
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
+
+  // ✅ show resend button only when backend says email not verified
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -22,14 +25,23 @@ function Login() {
     e.preventDefault();
     setError('');
     setInfo('');
+    setNeedsVerification(false);
     setLoading(true);
 
-    const result = await login(formData.email, formData.password);
+    try {
+      const result = await login(formData.email, formData.password);
 
-    if (result.success) {
-      navigate('/profile');
-    } else {
+      if (result.success) {
+        navigate('/profile');
+        return;
+      }
+
       setError(result.message || 'Login failed');
+
+      if (result.code === 'EMAIL_NOT_VERIFIED') {
+        setNeedsVerification(true);
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -37,79 +49,87 @@ function Login() {
   const handleResend = async () => {
     setError('');
     setInfo('');
+
     if (!formData.email) {
       setError('Enter your email first.');
       return;
     }
+
     setLoading(true);
-    const res = await resendVerification(formData.email);
-    if (res.success) setInfo(res.message || 'Verification email sent.');
-    else setError(res.message || 'Failed to send verification email.');
-    setLoading(false);
+    try {
+      const res = await resendVerification(formData.email);
+      if (res.success) {
+        setInfo(res.message || 'Verification email sent. Check your inbox/spam.');
+      } else {
+        setError(res.message || 'Failed to send verification email.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-box">
-        <div className="auth-header">
-          <h1>Sign In</h1>
-          <p>Sign in to access your profile</p>
-        </div>
+    <div className="auth-page">
+      <div className="auth-container">
+        <h2 className="auth-title">Login</h2>
+        <p className="auth-subtitle">Sign in to access your profile</p>
+
+        {error && <div className="auth-error">{error}</div>}
+        {info && <div className="auth-success">{info}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          {error && <div className="auth-error">{error}</div>}
-          {info && <div className="auth-success">{info}</div>}
+          <label className="auth-label">Email</label>
+          <input
+            className="auth-input"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Enter your email"
+            required
+          />
 
-          <div className="form-group">
-            <label>Email</label>
+          <label className="auth-label">Password</label>
+          <div className="auth-password-field">
             <input
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              value={formData.email}
+              className="auth-input"
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              value={formData.password}
               onChange={handleChange}
-              disabled={loading}
+              placeholder="Enter password"
               required
             />
+            <button
+              type="button"
+              className="show-hide-btn"
+              onClick={() => setShowPassword((s) => !s)}
+              disabled={loading}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
-            <div className="password-row">
-              <input
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Your password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-                required
-              />
-              <button
-                type="button"
-                className="toggle-btn"
-                onClick={() => setShowPassword((s) => !s)}
-                disabled={loading}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-          </div>
-
-          <button type="submit" className="auth-btn" disabled={loading}>
+          <button className="auth-button" type="submit" disabled={loading}>
             {loading ? 'Signing in...' : 'Login'}
-          </button>
-
-          <button type="button" className="auth-btn secondary" onClick={handleResend} disabled={loading}>
-            Resend verification email
           </button>
         </form>
 
-        <div className="auth-footer">
-          <p>
-            Don't have an account? <Link to="/signup">Sign Up</Link>
-          </p>
-        </div>
+        {/* ✅ Show resend only when needed */}
+        {needsVerification && (
+          <button
+            className="auth-button secondary"
+            onClick={handleResend}
+            disabled={loading}
+            style={{ marginTop: 10 }}
+          >
+            {loading ? 'Sending...' : 'Resend verification email'}
+          </button>
+        )}
+
+        <p className="auth-switch">
+          Don't have an account? <Link to="/signup">Sign Up</Link>
+        </p>
       </div>
     </div>
   );

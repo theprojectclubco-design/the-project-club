@@ -3,65 +3,106 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
+// ✅ Use env if available, fallback to your Render backend
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'https://the-project-club-backend.onrender.com';
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Check if user is logged in on mount
   useEffect(() => {
-    // Check if user is logged in on mount
     const token = localStorage.getItem('token');
     if (token) {
       verifyToken(token);
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const verifyToken = async (token) => {
     try {
-      const response = await axios.get(`https://the-project-club-backend.onrender.com/api/auth/verify`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${API_BASE_URL}/api/auth/verify`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+
       setUser(response.data.user);
       setLoading(false);
     } catch (error) {
       console.error('Token verification failed:', error);
       localStorage.removeItem('token');
+      setUser(null);
       setLoading(false);
     }
   };
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`https://the-project-club-backend.onrender.com/api/auth/login`, {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
-        password
+        password,
       });
-      
+
       const { token, user } = response.data;
+
       localStorage.setItem('token', token);
       setUser(user);
+
       return { success: true };
     } catch (error) {
+      const code = error.response?.data?.code; // ex: EMAIL_NOT_VERIFIED
+      const message = error.response?.data?.message || 'Login failed';
+
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed'
+        code,
+        message,
       };
     }
   };
 
   const signup = async (userData) => {
     try {
-      const response = await axios.post(`https://the-project-club-backend.onrender.com/api/auth/signup`, userData);
-      
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      return { success: true };
+      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData);
+
+      // NOTE:
+      // If backend returns token -> store it.
+      // If backend forces email verification and returns no token -> just return message.
+      const { token, user, message, requiresEmailVerification } = response.data;
+
+      if (token) localStorage.setItem('token', token);
+      if (user) setUser(user);
+
+      return {
+        success: true,
+        message: message || 'Signup successful',
+        requiresEmailVerification: !!requiresEmailVerification,
+      };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || 'Signup failed'
+        message: error.response?.data?.message || 'Signup failed',
+      };
+    }
+  };
+
+  // ✅ Call backend resend verification endpoint
+  const resendVerification = async (email) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/resend-verification`, {
+        email,
+      });
+
+      return {
+        success: true,
+        message: response.data?.message || 'Verification email sent',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to resend verification email',
       };
     }
   };
@@ -77,7 +118,9 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
-    isAuthenticated: !!user
+    resendVerification,
+    isAuthenticated: !!user,
+    API_BASE_URL, // optional: useful for debugging
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -85,8 +128,10 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth must be used within AuthProvider');
   }
+
   return context;
 };

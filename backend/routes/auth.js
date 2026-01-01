@@ -231,7 +231,7 @@ router.post('/resend-verification', async (req, res) => {
       .eq('email', email)
       .single();
 
-    // Avoid leaking whether a user exists
+    // Avoid leaking whether user exists
     if (error || !user) {
       return res.json({ success: true, message: 'If the email exists, a verification link was sent.' });
     }
@@ -253,17 +253,32 @@ router.post('/resend-verification', async (req, res) => {
 
     if (updateError) throw updateError;
 
-    await sendVerificationEmail({ email, token: emailVerifyToken });
+    const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verifyUrl = `${frontend}/verify-email?token=${encodeURIComponent(emailVerifyToken)}`;
 
-    return res.json({ success: true, message: 'Verification email sent.' });
-  } catch (error) {
-    console.error('Resend verification error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to resend verification email',
+    const from = process.env.EMAIL_FROM;
+    if (!from) {
+      return res.status(500).json({ success: false, message: 'EMAIL_FROM missing in backend env' });
+    }
+
+    const { data, error: sendError } = await resend.emails.send({
+      from,
+      to: [email],
+      subject: 'Verify your email - The Project Club',
+      html: buildVerifyEmailHtml(verifyUrl),
     });
+
+    if (sendError) {
+      return res.status(400).json({ success: false, message: sendError.message, resendError: sendError });
+    }
+
+    return res.json({ success: true, message: 'Verification email sent.', resendId: data?.id });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to resend verification email' });
   }
 });
+
 
 // POST /api/auth/login - Login user (blocked until email verified)
 router.post('/login', async (req, res) => {
