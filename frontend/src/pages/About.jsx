@@ -8,7 +8,7 @@ function About() {
       name: 'Shaik Mahiya',
       role: 'Founder & Lead Instructor',
       bio: 'Full-stack development with 2 years of experience. Passionate about teaching and building real-world projects.',
-      expertise: ['EDA', 'Dev Tools;', 'Frontend'],
+      expertise: ['EDA', 'Dev Tools', 'Frontend'],
       linkedin: 'https://www.linkedin.com/in/shaik-mahiya-242p ',
       github: 'https://github.com/SHAIKMAHIYA',
       image: '/founder1.jpg' // Add founder image in public folder
