@@ -386,34 +386,40 @@ exports.verifyPayment = async (req, res) => {
     const isDemo = Number(batch.fee) <= 1;
     console.log("verifyPayment meta received:", meta);
 
+    console.log("registration payload:", {
+      user_id: user.id,
+      email: meta.email,
+      batch_id: meta.batchId,
+      payment_status: 'PAID',
+    });
 
     // ✅ Create registration ONLY after payment verified
     const { data: createdReg, error: regError } = await supabase
-    
-      .from('registrations')
-      .insert([
-        {
-          user_id: user.id,
-          name: meta.name,
-          email: meta.email,
-          phone: meta.phone,
-          experience_level: meta.experience_level,
-          batch_id: meta.batch_id,
-          batch_title: batch.title,
-          amount: Number(batch.fee),
-          payment_status: 'PAID',
-          razorpay_order_id: orderId,
-          razorpay_payment_id: paymentId,
-          razorpay_signature: signature,
-          paid_at: new Date().toISOString(),
-          referral_source: meta.referralSource || null,
-          notes: meta.notes || null,
-          gender: meta.gender,
-          student_id: user.student_id,
-        },
-      ])
-      .select()
-      .single();
+  .from('registrations')
+  .insert([
+    {
+      user_id: user.id,
+      name: meta.name,
+      email: meta.email,
+      phone: meta.phone,
+      experience_level: meta.experienceLevel || null,
+      batch_id: meta.batchId,
+      batch_title: batch.title,
+      amount: Number(batch.fee),
+      currency: 'INR',
+      payment_status: 'PAID',
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+      paid_at: new Date().toISOString(),
+      referral_source: meta.referralSource || null,
+      notes: meta.notes || null,
+      gender: meta.gender,
+      student_id: user.student_id || null,
+    },
+  ])
+  .select()
+  .single()
       console.log('Created registration:', createdReg);
       console.log("Created registration ID:", createdReg?.id);
 
