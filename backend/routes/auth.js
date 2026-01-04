@@ -107,8 +107,6 @@ router.post('/signup', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Generate student ID
-    const studentId = await generateStudentId();
 
     // Create email verification token + expiry (30 minutes)
     const emailVerifyToken = crypto.randomBytes(32).toString('hex');
@@ -123,7 +121,6 @@ router.post('/signup', async (req, res) => {
           email,
           password: hashedPassword,
           phone: phone || null,
-          student_id: studentId,
           created_at: new Date().toISOString(),
 
           email_verified: false,
