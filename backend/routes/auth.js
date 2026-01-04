@@ -133,7 +133,8 @@ router.post('/signup', async (req, res) => {
 
     if (error) throw error;
 
-    console.log(`✅ New user created: ${name} | Student ID: ${studentId}`);
+    console.log(`✅ New user created: ${name} | Student ID: ${newUser.student_id}`);
+
 
     // Send verification email using Resend
     try {
