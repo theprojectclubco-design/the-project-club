@@ -261,18 +261,19 @@ function RegistrationForm() {
                 
               }
             );
-
+            console.log("verifyResponse:", verifyResponse.data);
             if (verifyResponse.data.success) {
+              const reg = verifyResponse.data.data;
               navigate('/success', {
                 state: {
-                  registrationId: registrationId,
-                  paymentId: paymentResponse.razorpay_payment_id,
-                  batchTitle: batchDetails?.title,
-                  amount: amount / 100,
-                  gender: formData.gender,
-                  studentId: regStudentId,
-                  isDemo: batchDetails?.price === 0 || batchDetails?.fee === 0,
-                  whatsappLink: verifyResponse.data.data.whatsapp_link,
+                  registrationId: reg.id,
+                  paymentId: reg.razorpay_payment_id,
+                  batchTitle: reg.batch_title,
+                  amount: reg.amount,
+                  gender: reg.gender,
+                  studentId: reg.student_id,
+                  isDemo: reg.amount <= 1,
+                  whatsappLink: reg.whatsapp_link,
                 },
               });
             } else {
