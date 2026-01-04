@@ -205,7 +205,7 @@ function RegistrationForm() {
             const enrollments = profileResponse.data.user.enrollments || [];
             const alreadyEnrolled = enrollments.some(
               (enrollment) =>
-                enrollment.batch_id === parseInt(selectedBatch) &&
+                String(enrollment.batch_id) === String(selectedBatch) &&
                 enrollment.payment_status === 'PAID'
             );
 
