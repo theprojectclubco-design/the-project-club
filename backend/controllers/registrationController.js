@@ -16,7 +16,7 @@ const razorpay = new Razorpay({
 
 /**
  * Render Free blocks outbound SMTP ports (25/465/587), so Nodemailer will time out.
- * These wrappers ensure registration/payment still succeeds even if emails fail. [web:786]
+ * These wrappers ensure registration/payment still succeeds even if emails fail.
  */
 const safeNotify = async (label, fn) => {
   try {
@@ -46,15 +46,13 @@ const safeCapacityAlert = async (batch) =>
 // Helper: Get or create user
 const getOrCreateUser = async (name, email, phone) => {
   try {
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: existingErr } = await supabase
       .from('users')
       .select('id, student_id')
       .eq('email', email)
       .single();
 
-    if (existingUser) {
-      return existingUser;
-    }
+    if (!existingErr && existingUser) return existingUser;
 
     const { data: newUser, error: userError } = await supabase
       .from('users')
@@ -110,7 +108,7 @@ const checkDuplicateRegistration = async (email, phone, batchId, userId) => {
   try {
     const { data, error } = await supabase
       .from('registrations')
-      .select('id, email, phone, batch_title, payment_status, student_id')
+      .select('id, email, phone, batch_title, payment_status, student_id, user_id, batch_id')
       .eq('batch_id', batchId)
       .or(`email.eq.${email},phone.eq.${phone},user_id.eq.${userId}`);
 
@@ -119,10 +117,7 @@ const checkDuplicateRegistration = async (email, phone, batchId, userId) => {
       return null;
     }
 
-    if (data && data.length > 0) {
-      return data[0];
-    }
-
+    if (data && data.length > 0) return data[0];
     return null;
   } catch (error) {
     console.error('❌ Error in checkDuplicateRegistration:', error);
@@ -175,6 +170,7 @@ const createBatch2 = async (originalBatch) => {
     console.log(
       `✅ Batch 2 created successfully: ${newBatch.title} (ID: ${newBatch.id})`
     );
+
     return newBatch;
   } catch (error) {
     console.error('❌ Error creating Batch 2:', error);
@@ -182,7 +178,7 @@ const createBatch2 = async (originalBatch) => {
   }
 };
 
-// 1) Create order
+// 1) Create order (NO registration creation here)
 exports.createOrder = async (req, res) => {
   try {
     const {
@@ -199,14 +195,7 @@ exports.createOrder = async (req, res) => {
 
     const studentName = name || fullName;
 
-    if (
-      !studentName ||
-      !email ||
-      !phone ||
-      !experienceLevel ||
-      !batchId ||
-      !gender
-    ) {
+    if (!studentName || !email || !phone || !experienceLevel || !batchId || !gender) {
       return res.status(400).json({
         success: false,
         message: 'All required fields must be provided including gender',
@@ -225,13 +214,11 @@ exports.createOrder = async (req, res) => {
         .json({ success: false, message: 'Batch not found' });
     }
 
-    // ✅ FIX: Check if batch is full
-    if (batch.registered_count >= batch.max_seats) {
-      // This can fail on Render Free due to SMTP restrictions; ignore safely.
+    // ✅ Check if batch is full (still ok to do here)
+    if ((batch.registered_count || 0) >= batch.max_seats) {
       await safeCapacityAlert(batch);
 
       const batch2 = await createBatch2(batch);
-
       if (batch2) {
         return res.status(400).json({
           success: false,
@@ -250,38 +237,7 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // Get or create user
-    const user = await getOrCreateUser(studentName, email, phone);
-
-    // Check for duplicate registration
-    const existingReg = await checkDuplicateRegistration(
-      email,
-      phone,
-      batchId,
-      user.id
-    );
-
-    if (existingReg) {
-      let identifier = 'account';
-      if (existingReg.email === email) identifier = 'email';
-      else if (existingReg.phone === phone) identifier = 'phone number';
-
-      return res.status(400).json({
-        success: false,
-        message: `You have already registered for "${existingReg.batch_title}" with this ${identifier}. ${
-          existingReg.payment_status === 'PAID'
-            ? 'Your enrollment is confirmed!'
-            : 'Please complete your pending payment or contact support.'
-        }`,
-        duplicate: true,
-        existingRegistration: {
-          batchTitle: existingReg.batch_title,
-          paymentStatus: existingReg.payment_status,
-          studentId: existingReg.student_id,
-        },
-      });
-    }
-
+    // Create Razorpay order (registration will be created ONLY after payment)
     const isDemo = Number(batch.fee) <= 1;
 
     const order = await razorpay.orders.create({
@@ -291,49 +247,24 @@ exports.createOrder = async (req, res) => {
       notes: { name: studentName, email, phone, batchId },
     });
 
-    const { data: registration, error: regError } = await supabase
-      .from('registrations')
-      .insert([
-        {
-          user_id: user.id,
-          name: studentName,
-          email,
-          phone,
-          experience_level: experienceLevel,
-          batch_id: batchId,
-          batch_title: batch.title,
-          amount: Number(batch.fee),
-          payment_status: 'PENDING',
-          razorpay_order_id: order.id,
-          referral_source: referralSource || null,
-          notes: notes || null,
-          gender,
-          student_id: user.student_id,
-        },
-      ])
-      .select()
-      .single();
-
-    if (regError) {
-      console.error('❌ Registration creation error:', regError);
-      return res
-        .status(500)
-        .json({ success: false, message: regError.message });
-    }
-
-    console.log(
-      `✅ New registration created for ${studentName} | Batch: ${batch.title} | Student ID: ${user.student_id}`
-    );
-
     return res.status(201).json({
       success: true,
       message: 'Order created successfully',
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      registrationId: registration.id,
-      studentId: user.student_id,
       isDemo,
+      // send back meta so frontend can reuse it in verify-payment
+      meta: {
+        name: studentName,
+        email,
+        phone,
+        experienceLevel,
+        batchId,
+        referralSource: referralSource || null,
+        notes: notes || null,
+        gender,
+      },
     });
   } catch (error) {
     console.error('❌ createOrder error:', error);
@@ -345,10 +276,10 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// 2) Verify payment
+// 2) Verify payment (CREATE registration here, only when PAID)
 exports.verifyPayment = async (req, res) => {
   try {
-    const { orderId, paymentId, signature } = req.body;
+    const { orderId, paymentId, signature, meta } = req.body;
 
     if (!orderId || !paymentId || !signature) {
       return res.status(400).json({
@@ -357,8 +288,17 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
-    const body = orderId + '|' + paymentId;
+    // meta is required now because we create registration only after payment
+    if (!meta || !meta.name || !meta.email || !meta.phone || !meta.experienceLevel || !meta.batchId || !meta.gender) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Missing meta fields. Send meta: { name, email, phone, experienceLevel, batchId, gender, referralSource?, notes? }',
+      });
+    }
 
+    // Verify Razorpay signature
+    const body = orderId + '|' + paymentId;
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(body)
@@ -371,94 +311,140 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
-    const { data: reg, error: regFetchErr } = await supabase
+    // Idempotency: if a PAID registration already exists for this payment/order, return it
+    const { data: paidByPayment } = await supabase
       .from('registrations')
       .select('*')
-      .eq('razorpay_order_id', orderId)
-      .single();
+      .eq('razorpay_payment_id', paymentId)
+      .maybeSingle?.();
 
-    if (regFetchErr || !reg) {
-      return res.status(404).json({
-        success: false,
-        message: 'Registration not found',
-      });
-    }
+    if (paidByPayment) {
+      const isDemoExisting = Number(paidByPayment.amount) <= 1;
+      const whatsappExisting = getWhatsAppGroupLink(paidByPayment.gender, isDemoExisting);
 
-    const isDemo = Number(reg.amount) <= 1;
-    const whatsappLink = getWhatsAppGroupLink(reg.gender, isDemo);
-
-    // ✅ FIX: Check if already paid to prevent double counting
-    if (reg.payment_status === 'PAID') {
-      console.log(`⚠️ Payment already processed. Skipping increment.`);
       return res.json({
         success: true,
         message: 'Payment already verified',
-        data: { ...reg, whatsapp_link: whatsappLink },
+        data: { ...paidByPayment, whatsapp_link: whatsappExisting },
       });
     }
 
-    // Update payment status
-    const { data: updated, error: updErr } = await supabase
+    // Load batch and check capacity (final gate happens here too)
+    const { data: batch, error: batchErr } = await supabase
+      .from('batches')
+      .select('*')
+      .eq('id', meta.batchId)
+      .single();
+
+    if (batchErr || !batch) {
+      return res.status(404).json({ success: false, message: 'Batch not found' });
+    }
+
+    if ((batch.registered_count || 0) >= batch.max_seats) {
+      await safeCapacityAlert(batch);
+
+      const batch2 = await createBatch2(batch);
+      if (batch2) {
+        return res.status(409).json({
+          success: false,
+          message: `Payment verified, but batch "${batch.title}" is full. We created "${batch2.title}". Please contact support to move your enrollment.`,
+          batchFull: true,
+          newBatchId: batch2.id,
+          newBatchTitle: batch2.title,
+        });
+      }
+
+      return res.status(409).json({
+        success: false,
+        message: 'Payment verified, but batch is full. Please contact support.',
+      });
+    }
+
+    // Get or create user
+    const user = await getOrCreateUser(meta.name, meta.email, meta.phone);
+
+    // Duplicate protection (user/email/phone + same batch)
+    const existingReg = await checkDuplicateRegistration(
+      meta.email,
+      meta.phone,
+      meta.batchId,
+      user.id
+    );
+
+    if (existingReg && existingReg.payment_status === 'PAID') {
+      const whatsappLinkDup = getWhatsAppGroupLink(meta.gender, Number(batch.fee) <= 1);
+      return res.json({
+        success: true,
+        message: 'Already registered (paid)',
+        data: { ...existingReg, whatsapp_link: whatsappLinkDup },
+      });
+    }
+
+    const isDemo = Number(batch.fee) <= 1;
+
+    // ✅ Create registration ONLY after payment verified
+    const { data: createdReg, error: regError } = await supabase
       .from('registrations')
-      .update({
-        payment_status: 'PAID',
-        razorpay_payment_id: paymentId,
-        razorpay_signature: signature,
-        paid_at: new Date().toISOString(),
-      })
-      .eq('id', reg.id)
+      .insert([
+        {
+          user_id: user.id,
+          name: meta.name,
+          email: meta.email,
+          phone: meta.phone,
+          experience_level: meta.experienceLevel,
+          batch_id: meta.batchId,
+          batch_title: batch.title,
+          amount: Number(batch.fee),
+          payment_status: 'PAID',
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature,
+          paid_at: new Date().toISOString(),
+          referral_source: meta.referralSource || null,
+          notes: meta.notes || null,
+          gender: meta.gender,
+          student_id: user.student_id,
+        },
+      ])
       .select()
       .single();
 
-    if (updErr) {
+    if (regError) {
+      console.error('❌ Registration insert error:', regError);
       return res.status(500).json({
         success: false,
-        message: updErr.message,
+        message: regError.message,
       });
     }
 
-    // ✅ FIX: Increment registered_count ONLY once per unique user
-    const { data: batch, error: batchErr } = await supabase
+    // Increment registered_count once
+    const newCount = (batch.registered_count || 0) + 1;
+    await supabase
       .from('batches')
-      .select('id, registered_count, max_seats, title')
-      .eq('id', updated.batch_id)
-      .single();
+      .update({ registered_count: newCount })
+      .eq('id', meta.batchId);
 
-    if (!batchErr && batch) {
-      const newCount = (batch.registered_count || 0) + 1;
+    console.log(`✅ Updated registered_count for ${batch.title}: ${newCount}/${batch.max_seats}`);
 
-      await supabase
-        .from('batches')
-        .update({ registered_count: newCount })
-        .eq('id', updated.batch_id);
-
-      console.log(
-        `✅ Updated registered_count for ${batch.title}: ${newCount}/${batch.max_seats}`
-      );
-
-      // Check if max capacity reached
-      if (newCount >= batch.max_seats) {
-        console.log(`⚠️ Batch ${batch.title} has reached maximum capacity!`);
-        await safeCapacityAlert(batch);
-      }
+    if (newCount >= batch.max_seats) {
+      console.log(`⚠️ Batch ${batch.title} has reached maximum capacity!`);
+      await safeCapacityAlert(batch);
     }
 
-    /**
-     * IMPORTANT:
-     * Notifications (Excel + emails) must never break verifyPayment.
-     * On Render Free, SMTP is blocked so emails will fail; these are best-effort. [web:786]
-     */
-    await safeExcel(updated);
-    await safeAdminEmail(updated);
-    await safeStudentEmail(updated, whatsappLink);
+    const whatsappLink = getWhatsAppGroupLink(createdReg.gender, isDemo);
+
+    // Best-effort notifications (must not break verifyPayment)
+    await safeExcel(createdReg);
+    await safeAdminEmail(createdReg);
+    await safeStudentEmail(createdReg, whatsappLink);
 
     console.log(`✅ Payment verified | WhatsApp: ${whatsappLink || 'N/A'}`);
 
     return res.json({
       success: true,
-      message: 'Payment verified and registration completed',
+      message: 'Payment verified and registration created',
       data: {
-        ...updated,
+        ...createdReg,
         whatsapp_link: whatsappLink,
       },
     });
