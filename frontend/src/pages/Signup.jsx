@@ -97,7 +97,7 @@ function Signup() {
           </div>
 
           <div className="form-group">
-            <label>Phone (optional)</label>
+            <label>Phone</label>
             <input
               name="phone"
               type="tel"
