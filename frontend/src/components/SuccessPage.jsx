@@ -6,6 +6,7 @@ function SuccessPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [registrationData, setRegistrationData] = useState(null);
+  
 
   useEffect(() => {
     if (location.state) {

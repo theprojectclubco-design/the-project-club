@@ -105,13 +105,13 @@ const getWhatsAppGroupLink = (gender, isDemo) => {
 };
 
 // Check if user already registered for this batch
-const checkDuplicateRegistration = async (email, phone, batchId, userId) => {
+const checkDuplicateRegistration = async (email, phone, batch_id, user_id) => {
   try {
     const { data, error } = await supabase
       .from('registrations')
       .select('id, email, phone, batch_title, payment_status, student_id, user_id, batch_id')
-      .eq('batch_id', batchId)
-      .or(`email.eq.${email},phone.eq.${phone},user_id.eq.${userId}`);
+      .eq('batch_id', batch_id)
+      .or(`email.eq.${email},phone.eq.${phone},user_id.eq.${user_id}`);
 
     if (error) {
       console.error('❌ Error checking duplicate:', error);
@@ -187,16 +187,16 @@ exports.createOrder = async (req, res) => {
       fullName,
       email,
       phone,
-      experienceLevel,
-      batchId,
-      referralSource,
+      experience_level,
+      batch_id,
+      referral_source,
       notes,
       gender,
     } = req.body;
 
     const studentName = name || fullName;
 
-    if (!studentName || !email || !phone || !experienceLevel || !batchId || !gender) {
+    if (!studentName || !email || !phone || !experience_level || !batch_id || !gender) {
       return res.status(400).json({
         success: false,
         message: 'All required fields must be provided including gender',
@@ -206,7 +206,7 @@ exports.createOrder = async (req, res) => {
     const { data: batch, error: batchError } = await supabase
       .from('batches')
       .select('*')
-      .eq('id', batchId)
+      .eq('id', batch_id)
       .single();
 
     if (batchError || !batch) {
@@ -260,9 +260,9 @@ exports.createOrder = async (req, res) => {
         name: studentName,
         email,
         phone,
-        experienceLevel,
-        batchId,
-        referralSource: referralSource || null,
+        experience_level,
+        batch_id,
+        referralSource: referral_source || null,
         notes: notes || null,
         gender,
       },
@@ -292,7 +292,7 @@ exports.verifyPayment = async (req, res) => {
     }
 
     // meta is required now because we create registration only after payment
-    if (!meta || !meta.name || !meta.email || !meta.phone || !meta.experienceLevel || !meta.batchId || !meta.gender) {
+    if (!meta || !meta.name || !meta.email || !meta.phone || !meta.experience_level || !meta.batch_id || !meta.gender) {
       return res.status(400).json({
         success: false,
         message:
@@ -336,7 +336,7 @@ exports.verifyPayment = async (req, res) => {
     const { data: batch, error: batchErr } = await supabase
       .from('batches')
       .select('*')
-      .eq('id', meta.batchId)
+      .eq('id', meta.batch_id)
       .single();
 
     if (batchErr || !batch) {
@@ -370,7 +370,7 @@ exports.verifyPayment = async (req, res) => {
     const existingReg = await checkDuplicateRegistration(
       meta.email,
       meta.phone,
-      meta.batchId,
+      meta.batch_id,
       user.id
     );
 
@@ -384,9 +384,12 @@ exports.verifyPayment = async (req, res) => {
     }
 
     const isDemo = Number(batch.fee) <= 1;
+    console.log("verifyPayment meta received:", meta);
+
 
     // ✅ Create registration ONLY after payment verified
     const { data: createdReg, error: regError } = await supabase
+    
       .from('registrations')
       .insert([
         {
@@ -394,8 +397,8 @@ exports.verifyPayment = async (req, res) => {
           name: meta.name,
           email: meta.email,
           phone: meta.phone,
-          experience_level: meta.experienceLevel,
-          batch_id: meta.batchId,
+          experience_level: meta.experience_level,
+          batch_id: meta.batch_id,
           batch_title: batch.title,
           amount: Number(batch.fee),
           payment_status: 'PAID',
@@ -412,6 +415,8 @@ exports.verifyPayment = async (req, res) => {
       .select()
       .single();
       console.log('Created registration:', createdReg);
+      console.log("Created registration ID:", createdReg?.id);
+
 
 
     if (regError) {
@@ -427,7 +432,7 @@ exports.verifyPayment = async (req, res) => {
     await supabase
       .from('batches')
       .update({ registered_count: newCount })
-      .eq('id', meta.batchId);
+      .eq('id', meta.batch_id);
 
     console.log(`✅ Updated registered_count for ${batch.title}: ${newCount}/${batch.max_seats}`);
 

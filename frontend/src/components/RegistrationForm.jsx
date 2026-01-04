@@ -173,7 +173,7 @@ function RegistrationForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.fullName || !formData.email || !formData.phone || !formData.gender) {
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.gender|| !formData.experienceLevel) {
       setError('Please fill in all required fields including gender');
       return;
     }
@@ -241,6 +241,20 @@ function RegistrationForm() {
       }
 
       const { orderId, amount, currency, meta} = response.data;
+      const metaToSend = {
+        // always send the required fields expected by backend
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        experienceLevel: formData.experienceLevel,
+        batchId: selectedBatch,
+        gender: formData.gender,
+
+        // optional fields (safe)
+        referralSource: formData.referralSource || null,
+        notes: meta?.notes || null,
+      };
+      console.log("Sending metaToSend:", metaToSend);
 
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -250,6 +264,7 @@ function RegistrationForm() {
         description: `Registration for ${batchDetails?.title || 'Course'}`,
         order_id: orderId,
         handler: async function (paymentResponse) {
+          console.log("meta being sent", meta);
           try {
             const verifyResponse = await axios.post(
               `https://the-project-club-backend.onrender.com/api/registration/verify-payment`,
@@ -257,7 +272,7 @@ function RegistrationForm() {
                 orderId: orderId,
                 paymentId: paymentResponse.razorpay_payment_id,
                 signature: paymentResponse.razorpay_signature,
-                meta,
+                meta: metaToSend,
                 
               }
             );
@@ -282,7 +297,9 @@ function RegistrationForm() {
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            setError('Payment verification failed. Please contact support with your payment ID.');
+            const msg = error?.response?.data?.message || 'Payment verification failed.';
+            console.error('Payment verification error:', error?.response?.data || error);
+            setError(msg);
             setLoading(false);
           }
         },
