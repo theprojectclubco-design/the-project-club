@@ -240,7 +240,7 @@ function RegistrationForm() {
         throw new Error(response.data.message || 'Registration failed');
       }
 
-      const { orderId, amount, currency, registrationId, studentId: regStudentId } = response.data;
+      const { orderId, amount, currency, meta} = response.data;
 
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -257,6 +257,8 @@ function RegistrationForm() {
                 orderId: orderId,
                 paymentId: paymentResponse.razorpay_payment_id,
                 signature: paymentResponse.razorpay_signature,
+                meta,
+                
               }
             );
 

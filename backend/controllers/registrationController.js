@@ -2,6 +2,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const supabase = require('../supabaseClient');
 
+
 const { appendToExcel } = require('../utils/excelExport');
 const {
   sendAdminNotification,
@@ -278,6 +279,8 @@ exports.createOrder = async (req, res) => {
 
 // 2) Verify payment (CREATE registration here, only when PAID)
 exports.verifyPayment = async (req, res) => {
+  console.log("verifyPayment body:", Object.keys(req.body));
+
   try {
     const { orderId, paymentId, signature, meta } = req.body;
 
