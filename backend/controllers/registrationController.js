@@ -411,6 +411,8 @@ exports.verifyPayment = async (req, res) => {
       ])
       .select()
       .single();
+      console.log('Created registration:', createdReg);
+
 
     if (regError) {
       console.error('❌ Registration insert error:', regError);
